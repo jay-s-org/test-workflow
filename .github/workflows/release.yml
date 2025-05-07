@@ -27,6 +27,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install python-dotenv openai azure-devops pygithub aiohttp markdown
           pip install git+https://github.com/Hankanman/Changelog-Weaver.git@main
+      
+      - name: Get Previous Tag
+        id: prev
+        uses: WyriHaximus/github-action-get-previous-tag@v1
+        with:
+          fallback: 'v0.0.0'  
 
       - name: Write .env
         run: |
@@ -41,7 +47,7 @@ jobs:
           PROJECT_URL=https://github.com/${{ github.repository }}
           REPO_NAME=${{ github.event.repository.name }}
           BRANCH=${{ github.event.release.target_commitish }}
-          FROM_TAG=$(git describe --tags --abbrev=0 HEAD^)
+          FROM_TAG=${{ steps.prev.outputs.tag }}
           TO_TAG=${{ github.ref_name }}
           QUERY=is:closed
           ACCESS_TOKEN=${{ secrets.Workflow_PAT }}
