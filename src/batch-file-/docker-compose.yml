@@ -1,0 +1,36 @@
+version: '3.11'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  celery-worker:
+    build: .
+    container_name: celery-worker
+    depends_on:
+      - rabbitmq
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_QUEUE=queue_A
+      - RABBITMQ_QUEUE_B=queue_B
+      - MONGO_URI=mongodb://admin:root@host.docker.internal:37017/primecare-db?authSource=admin
+      - MONGO_HOST=host.docker.internal
+      - MONGO_PORT=37017
+      - MONGO_DBNAME=primecare-db
+      - MONGO_COLLECTION=Fingerprints
+      - MONGO_USER=admin
+      - MONGO_PASSWORD=root
+
+volumes:
+  rabbitmq_data:

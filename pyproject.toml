@@ -1,0 +1,79 @@
+[project]
+name = "batch-file"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.6.12",
+    "pre-commit>=4.2.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "ruff>=0.11.8",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    # Essential Rules
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "I",    # isort
+    "W",    # pycodestyle warnings
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "SIM",  # simplify
+    "RET",  # return statement checks
+    
+    # Moderately Strict Rules
+    "N",    # pep8-naming
+    "PIE",  # misc. good practices
+    "TRY",  # exception handling
+    "RUF",  # Ruff-specific rules
+    "PL",   # Pylint
+    "ARG",  # unused-arguments
+
+    # Security and Testing
+    "S",    # security checks (detect hardcoded passwords, unsafe functions)
+    "PT",   # pytest style (ensures consistent test patterns)
+    
+    # Import and Code Organization
+    "TID",  # tidy imports (prevents problematic import patterns)
+    "ICN",  # import conventions (enforces standard library aliases like 'np')
+    
+    # Code Quality and Safety
+    "DTZ",  # datetime timezone (ensures proper timezone handling)
+    "EM",   # error messages (enforces descriptive error messages)
+    "INP",  # implicit namespace packages (prevents PEP 420 issues)
+    "T10",  # debugger checks (finds forgotten debug statements)
+    "T20",  # print statement checks (finds forgotten print statements)
+    "Q",    # quote consistency (enforces consistent quote style)
+    "INT",  # gettext checks (helps with internationalization)
+    "PTH",  # pathlib usage (encourages modern path handling)
+]
+
+
+
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["INP001", "S101", "TRY", "EM", "B"]
+ignore = [
+    "E501",  # line too long
+    "S101",  # use of assert (ok in pytest)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-wrap-aliases = true
+known-first-party = ["worker"]
+required-imports = ["from __future__ import annotations"]

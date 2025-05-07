@@ -1,0 +1,82 @@
+name: 📜 Auto-Generate Release Notes
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write   
+  actions: read
+
+jobs:
+  build:
+    if: ${{ vars.FEATURE_CD == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Weaver & deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-dotenv openai azure-devops pygithub aiohttp markdown
+          pip install git+https://github.com/Hankanman/Changelog-Weaver.git@main
+
+      - name: Write .env
+        run: |
+          
+          cat <<EOF > .env
+          SOLUTION_NAME=${{ github.event.repository.name }}
+          RELEASE_VERSION=${{ github.ref_name }}
+          SOFTWARE_SUMMARY=Release ${{ github.ref_name }}
+          GET_ITEM_SUMMARY=True
+          GET_CHANGELOG_SUMMARY=True
+          INCLUDE_COMMITS=True
+          PROJECT_URL=https://github.com/${{ github.repository }}
+          REPO_NAME=${{ github.event.repository.name }}
+          BRANCH=${{ github.event.release.target_commitish }}
+          FROM_TAG=$(git describe --tags --abbrev=0 HEAD^)
+          TO_TAG=${{ github.ref_name }}
+          QUERY=is:closed
+          ACCESS_TOKEN=${{ secrets.Workflow_PAT }}
+          GPT_API_KEY=${{ secrets.GPT_API_KEY }}
+          MODEL_BASE_URL=https://api.openai.com/v1
+          MODEL=gpt-4.1
+          OUTPUT_FOLDER=Releases
+          LOG_LEVEL=INFO
+          EOF
+
+      - name: Generate Changelog
+        run: python -m changelog_weaver
+
+      - name: Upload Changelog artifact (optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: Releases/*.md
+
+      - name: Patch Release description from generated Markdown
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs   = require('fs');
+            const path = require('path');
+            const files = fs.readdirSync('Releases');
+            const mdFile = files.find(f => f.endsWith('.md'));
+            if (!mdFile) throw new Error(`No markdown in Releases/: ${files}`);
+            const mdPath = path.join('Releases', mdFile);
+            const body   = fs.readFileSync(mdPath, 'utf8');
+            await github.rest.repos.updateRelease({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              release_id: context.payload.release.id,
+              body
+            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.Workflow_PAT }}

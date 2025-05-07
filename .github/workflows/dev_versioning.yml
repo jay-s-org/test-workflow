@@ -1,0 +1,57 @@
+name: Increment Development Version
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+
+  create_dev_tag:
+    if: ${{ vars.FEATURE_CI == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all tags
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get Base Version
+        id: get_base_version
+        run: |
+          # Get the latest tag that is not a dev tag
+          BASE_TAG=$(git tag --list 'v*' | grep -v -- 'dev' | sort -V | tail -n1)
+          echo "BASE_TAG=${BASE_TAG}" >> $GITHUB_ENV
+
+      - name: Get Latest Dev Tag
+        id: get_latest_dev_tag
+        run: |
+          # List only properly formatted dev tags
+          LATEST_DEV_TAG=$(git tag --list "${BASE_TAG}-dev.*" | grep -E "^${BASE_TAG}-dev\.[0-9]+$" | sort -V | tail -n1)
+          echo "LATEST_DEV_TAG=${LATEST_DEV_TAG}" >> $GITHUB_ENV
+
+      - name: Extract Dev Number
+        id: extract_dev_number
+        run: |
+          if [ -z "${LATEST_DEV_TAG}" ]; then
+            DEV_NUMBER=1
+          else
+            # Extract the number after 'dev.'
+            DEV_NUMBER=$(echo "${LATEST_DEV_TAG}" | sed -E "s/^${BASE_TAG}-dev\.([0-9]+)$/\1/")
+            DEV_NUMBER=$((DEV_NUMBER + 1))
+          fi
+          echo "DEV_NUMBER=${DEV_NUMBER}" >> $GITHUB_ENV
+
+      - name: Create New Dev Tag
+        run: |
+          NEW_TAG="${BASE_TAG}-dev.${DEV_NUMBER}"
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
+          echo "New dev tag created: $NEW_TAG"
